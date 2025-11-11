@@ -1,4 +1,4 @@
-# Nama: Gregorius Ega Aditama Sudjali
+ Nama: Gregorius Ega Aditama Sudjali
 # NPM: 2406434153
 # Toko Bola EGA
 
@@ -43,3 +43,18 @@
 
 6. **Hot reload vs hot restart**  
    Hot reload menyuntikkan perubahan kode ke VM tanpa menghapus state `StatefulWidget` yang ada, sehingga cocok untuk iterasi UI cepat. Hot restart merestart aplikasi dari awal, menghapus seluruh state in-memory. Pilih hot reload untuk perubahan tampilan dan hot restart ketika membutuhkan state fresh atau setelah mengubah kode yang tidak didukung hot reload (mis. init state).
+
+## Tugas 8 – Flutter Navigation, Layouts, Forms, and Input Elements
+
+### Jawaban Pertanyaan
+1. **Navigator.push() vs Navigator.pushReplacement()**  
+   `Navigator.push()` menambahkan halaman baru ke atas tumpukan tanpa menghapus halaman sebelumnya sehingga pengguna masih bisa kembali dengan tombol back. Fitur ini saya gunakan untuk tombol Tambah Produk pada halaman utama supaya setelah menyimpan formulir pengguna bisa menekan tombol back untuk kembali ke dashboard. `Navigator.pushReplacement()` menggantikan halaman aktif dengan halaman baru sehingga halaman awal tidak lagi tersimpan di tumpukan. Mode ini lebih cocok untuk navigasi melalui Drawer agar pengguna tidak membuat banyak instance halaman yang sama ketika memilih opsi Halaman Utama atau Tambah Produk.
+
+2. **Pemanfaatan Scaffold, AppBar, dan Drawer**  
+   Saya membungkus setiap halaman utama dengan `Scaffold` agar struktur dasar (AppBar, body, Drawer) selalu tersedia. `AppBar` menampilkan identitas toko dengan latar gradien yang sama di setiap halaman sehingga pengguna merasa berada di aplikasi yang sama meskipun berpindah layar. `Drawer` saya ekstrak menjadi widget terpisah (`AppDrawer`) dan disisipkan pada seluruh halaman agar navigasi antara Halaman Utama dan Tambah Produk konsisten serta mudah dipelihara.
+
+3. **Kelebihan layout widget untuk form**  
+   `Padding` memberi ruang napas pada setiap input sehingga form lebih mudah dibaca. `SingleChildScrollView` memastikan form tetap dapat di-scroll pada layar kecil sehingga tidak terjadi overflow saat keyboard muncul. Keduanya saya kombinasikan dengan `Column` di halaman Tambah Produk sehingga seluruh elemen (teks pengantar, input, dropdown, switch, dan tombol) tersusun rapi. Ketika nanti daftar produk ingin ditampilkan dinamis, `ListView` dapat digunakan agar item menyesuaikan tinggi konten tanpa perlu menghitung manual.
+
+4. **Menyesuaikan warna tema**  
+   Saya menentukan `ColorScheme.fromSeed` dengan warna hijau utama (#0B8457) serta mengatur `appBarTheme`, `scaffoldBackgroundColor`, dan `inputDecorationTheme`. Dengan cara ini, seluruh komponen—mulai dari tombol aksi, border input, hingga Drawer—memakai kombinasi warna yang sama sehingga identitas Football Shop terasa konsisten di setiap halaman.

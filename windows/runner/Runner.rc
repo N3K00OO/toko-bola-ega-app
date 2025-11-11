@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.example" "\0"
-            VALUE "FileDescription", "toko_bola_ega" "\0"
+            VALUE "FileDescription", "football_news" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "toko_bola_ega" "\0"
+            VALUE "InternalName", "football_news" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2025 com.example. All rights reserved." "\0"
-            VALUE "OriginalFilename", "toko_bola_ega.exe" "\0"
-            VALUE "ProductName", "toko_bola_ega" "\0"
+            VALUE "OriginalFilename", "football_news.exe" "\0"
+            VALUE "ProductName", "football_news" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

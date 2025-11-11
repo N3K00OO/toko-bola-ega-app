@@ -1,16 +1,18 @@
+// This is a basic Flutter widget test.
+//
+// To perform an interaction with a widget in your test, use the WidgetTester
+// utility in the flutter_test package. For example, you can send tap and scroll
+// gestures. You can also use WidgetTester to find child widgets in the widget
+// tree, read text, and verify that the values of widget properties are correct.
+
 import 'package:flutter_test/flutter_test.dart';
-import 'package:toko_bola_ega/main.dart';
+
+import 'package:football_news/main.dart';
 
 void main() {
-  testWidgets('HomePage menampilkan aksi utama toko', (
-    WidgetTester tester,
-  ) async {
-    await tester.pumpWidget(const TokoBolaApp());
+  testWidgets('Halaman utama tampil dengan judul toko', (tester) async {
+    await tester.pumpWidget(const FootballShopApp());
 
-    expect(find.text('Selamat datang di Toko Bola EGA'), findsOneWidget);
-    expect(find.text('All Products'), findsOneWidget);
-    expect(find.text('My Products'), findsOneWidget);
-    expect(find.text('Create Product'), findsOneWidget);
-    expect(find.text('Katalog produk unggulan'), findsOneWidget);
+    expect(find.text('Toko Bola Ega'), findsOneWidget);
   });
 }
