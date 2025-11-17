@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="max-w-2xl mx-auto px-4 py-8">
+  <div class="bg-white border border-gray-200 rounded-2xl p-6 sm:p-8 form-style shadow">
+    <h1 class="text-2xl font-bold text-gray-900 mb-6">Add Product</h1>
+
+    <form method="POST" class="space-y-5" id="product-form">
+      {% csrf_token %}
+
+      <label class="block">
+        <span class="text-sm text-gray-700">Category</span>
+        {{ form.category }}
+        <p class="text-xs text-gray-500 mt-1">Choose a product type.</p>
+      </label>
+
+      <label id="misc-wrap" class="block hidden">
+        <span class="text-sm text-gray-700">If Misc/Others, specify</span>
+        {{ form.category_custom }}
+        <p class="text-xs text-gray-500 mt-1">Optional extra label used for your WIP search.</p>
+      </label>
+
+      <label class="block">
+        <span class="text-sm text-gray-700">Name</span>
+        {{ form.name }}
+      </label>
+
+      <div class="grid sm:grid-cols-2 gap-4">
+        <label class="block">
+          <span class="text-sm text-gray-700">Brand</span>
+          {{ form.brand }}
+        </label>
+        <label class="block">
+          <span class="text-sm text-gray-700">Price</span>
+          {{ form.price }}
+        </label>
+      </div>
+
+      <label class="block">
+        <span class="text-sm text-gray-700">Thumbnail URL</span>
+        {{ form.thumbnails }}
+      </label>
+
+      <label class="block">
+        <span class="text-sm text-gray-700">Description</span>
+        {{ form.description }}
+      </label>
+
+      <label class="inline-flex items-center gap-2">
+        {{ form.is_featured }}
+        <span class="text-sm text-gray-700">Featured</span>
+      </label>
+
+      <div class="pt-4 flex gap-3">
+        <a href="{% url 'main:show_main' %}" class="px-4 py-2 rounded-lg border text-gray-700">Cancel</a>
+        <button class="px-4 py-2 rounded-lg bg-violet-600 text-white hover:bg-violet-700">Add Product</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  const sel = document.getElementById('id_category');
+  const miscWrap = document.getElementById('misc-wrap');
+  function toggleMisc(){ miscWrap.classList.toggle('hidden', sel.value !== 'misc'); }
+  sel.addEventListener('change', toggleMisc);
+  toggleMisc();
+</script>
+
+<script>
+(function () {
+  const form = document.getElementById('product-form');
+  if (!form) return;
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fd = new FormData(form);
+    const payload = Object.fromEntries(fd.entries());
+    const res = await fetch('{% url "main:api_products" %}', {
+      method: 'POST',
+      headers: Object.assign({'Content-Type':'application/json'}, withCsrf()),
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (data.ok) {
+      location.href = "{% url 'main:show_main' %}";
+    } else {
+      alert('Validation error:\\n' + JSON.stringify(data.errors, null, 2));
+    }
+  });
+})();
+</script>
+
+{% endblock %}

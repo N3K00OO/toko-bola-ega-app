@@ -1,23 +1,41 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
 import '../routes/app_routes.dart';
+import '../services/auth_service.dart';
+import '../state/session_state.dart';
 import '../widgets/app_drawer.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
-  void _showSnackBar(BuildContext context, String label) {
-    ScaffoldMessenger.of(context)
+
+  Future<void> _handleLogout(BuildContext context) async {
+    final authService = context.read<AuthService>();
+    final session = context.read<SessionState>();
+    final messenger = ScaffoldMessenger.of(context);
+    await authService.logout();
+    session.clear();
+    if (!context.mounted) return;
+    messenger
       ..hideCurrentSnackBar()
       ..showSnackBar(
-        SnackBar(
-          content: Text('Kamu memilih aksi $label'),
+        const SnackBar(
+          content: Text('Kamu sudah keluar dari sesi.'),
           behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 2),
         ),
       );
+    Navigator.pushNamedAndRemoveUntil(
+      context,
+      AppRoutes.login,
+      (route) => false,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final session = context.watch<SessionState>();
+    final user = session.user;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text(
@@ -37,10 +55,14 @@ class HomePage extends StatelessWidget {
       drawer: AppDrawer(
         isOnHome: true,
         isOnAddProduct: false,
+        isOnProducts: false,
         onNavigateHome: () =>
             Navigator.pushReplacementNamed(context, AppRoutes.home),
         onNavigateAddProduct: () =>
             Navigator.pushReplacementNamed(context, AppRoutes.addProduct),
+        onNavigateProducts: () =>
+            Navigator.pushReplacementNamed(context, AppRoutes.products),
+        onLogout: () => _handleLogout(context),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
@@ -54,42 +76,72 @@ class HomePage extends StatelessWidget {
                 ),
                 SizedBox(width: 16),
                 Expanded(
-                  child: InfoCard(label: 'Nama', value: 'G. Ega. A Sudjali'),
+                  child: InfoCard(label: 'Nama', value: 'Gregorius Ega A. S.'),
                 ),
                 SizedBox(width: 16),
                 Expanded(
-                  child: InfoCard(label: 'Kelas', value: 'C'),
+                  child: InfoCard(label: 'Kelas', value: 'PBP C'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: InfoCard(
+                    label: 'Username',
+                    value: user?.username ?? '-',
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: InfoCard(
+                    label: 'Nama pengguna',
+                    value: user?.name ?? 'Belum diisi',
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: InfoCard(
+                    label: 'Last login',
+                    value: user?.lastLogin ?? 'Baru saja',
+                  ),
                 ),
               ],
             ),
             const SizedBox(height: 36),
             const Text(
-              'Selamat datang di Football Shop',
+              'Dashboard inventori sepak bola modern',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Pantau koleksi jersey, atur stok perlengkapan latihan, dan kurasi produk unggulanmu.',
+              textAlign: TextAlign.center,
             ),
             const SizedBox(height: 36),
             Row(
               children: [
                 Expanded(
                   child: HomeActionCard(
-                    icon: Icons.article_outlined,
-                    title: 'Football News',
-                    subtitle: 'Lihat kabar & rumor terbaru',
+                    icon: Icons.store_outlined,
+                    title: 'Katalog',
+                    subtitle: 'Lihat inventori terbaru',
                     gradientColors: const [
                       Color(0xFF00A3FF),
                       Color(0xFF0063F7),
                     ],
                     onTap: () =>
-                        _showSnackBar(context, 'Lihat pemberitaan sepak bola'),
+                        Navigator.pushNamed(context, AppRoutes.products),
                   ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: HomeActionCard(
                     icon: Icons.add_circle_outline,
-                    title: 'Add Product',
-                    subtitle: 'Tambahkan stok baru toko',
+                    title: 'Tambah Produk',
+                    subtitle: 'Input stok baru toko',
                     gradientColors: const [
                       Color(0xFF0BB07B),
                       Color(0xFF045D56),
@@ -102,13 +154,13 @@ class HomePage extends StatelessWidget {
                 Expanded(
                   child: HomeActionCard(
                     icon: Icons.logout,
-                    title: 'Logout',
-                    subtitle: 'Keluar dari sesi anda',
+                    title: 'Keluar',
+                    subtitle: 'Akhiri sesi amanmu',
                     gradientColors: const [
                       Color(0xFFFF8E53),
                       Color(0xFFFE6B8B),
                     ],
-                    onTap: () => _showSnackBar(context, 'Logout'),
+                    onTap: () => _handleLogout(context),
                   ),
                 ),
               ],
@@ -242,3 +294,4 @@ class HomeActionCard extends StatelessWidget {
     );
   }
 }
+

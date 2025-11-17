@@ -1,0 +1,26 @@
+<article class="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg transition">
+  <div class="aspect-[16/9] bg-gray-100">
+    {% if product.thumbnails %}
+      <img src="{{ product.thumbnails }}" alt="{{ product.name }}" class="w-full h-full object-cover">
+    {% endif %}
+  </div>
+  <div class="p-5">
+    <h3 class="text-lg font-semibold text-gray-900">{{ product.name }}</h3>
+    <p class="text-sm text-gray-600 mt-1">{{ product.category }} • Rp {{ product.price }}</p>
+    <p class="text-gray-700 mt-3 line-clamp-2">{{ product.description }}</p>
+
+    <div class="flex items-center justify-between mt-4 pt-3 border-t">
+      <a href="{% url 'main:show_product' product.id %}" class="text-green-600 hover:text-green-700 text-sm">View</a>
+
+      {% if user.is_authenticated and product.user_id == user.id %}
+        <div class="flex gap-3">
+          <a href="{% url 'main:edit_product' product.id %}" class="text-sm text-gray-700 hover:text-gray-900">Edit</a>
+          <form method="POST" action="{% url 'main:delete_product' product.id %}">
+            {% csrf_token %}
+            <button class="text-sm text-red-600 hover:text-red-700">Delete</button>
+          </form>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</article>

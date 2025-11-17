@@ -1,22 +1,32 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../state/session_state.dart';
 
 class AppDrawer extends StatelessWidget {
   const AppDrawer({
     super.key,
     required this.isOnHome,
     required this.isOnAddProduct,
+    required this.isOnProducts,
     required this.onNavigateHome,
     required this.onNavigateAddProduct,
+    required this.onNavigateProducts,
+    this.onLogout,
   });
 
   final bool isOnHome;
   final bool isOnAddProduct;
+  final bool isOnProducts;
   final VoidCallback onNavigateHome;
   final VoidCallback onNavigateAddProduct;
+  final VoidCallback onNavigateProducts;
+  final VoidCallback? onLogout;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final user = context.watch<SessionState>().user;
 
     return Drawer(
       child: SafeArea(
@@ -37,7 +47,7 @@ class AppDrawer extends StatelessWidget {
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
+                children: [
                   Text(
                     'Toko Bola Ega',
                     style: TextStyle(
@@ -46,10 +56,18 @@ class AppDrawer extends StatelessWidget {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  SizedBox(height: 8),
+                  const SizedBox(height: 6),
+                  Text(
+                    user?.name ?? user?.username ?? 'Football curator',
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 13,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                   Text(
                     'Kelola katalog produk sepak bola kamu dengan mudah.',
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: Colors.white70,
                       fontSize: 13,
                     ),
@@ -79,7 +97,29 @@ class AppDrawer extends StatelessWidget {
                 }
               },
             ),
+            ListTile(
+              leading: const Icon(Icons.inventory_2_outlined),
+              title: const Text('Katalog Produk'),
+              selected: isOnProducts,
+              onTap: () {
+                Navigator.pop(context);
+                if (!isOnProducts) {
+                  onNavigateProducts();
+                }
+              },
+            ),
             const Spacer(),
+            if (onLogout != null)
+              ListTile(
+                leading: Icon(Icons.logout, color: Colors.red[400]),
+                title: const Text('Keluar'),
+                textColor: Colors.red[400],
+                iconColor: Colors.red[400],
+                onTap: () {
+                  Navigator.pop(context);
+                  onLogout!.call();
+                },
+              ),
             Padding(
               padding: const EdgeInsets.all(16),
               child: Text(

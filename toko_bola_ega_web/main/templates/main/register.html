@@ -1,0 +1,204 @@
+{% extends 'base.html' %}
+
+{% block meta %}
+<title>Register</title>
+{% endblock meta %}
+
+{% block content %}
+
+<section class="min-h-[60vh] w-full px-4 py-10 flex items-center justify-center">
+  <div class="w-full max-w-md">
+    <!-- Card -->
+    <div class="bg-white/80 backdrop-blur border border-gray-200 shadow-xl rounded-2xl overflow-hidden">
+      <!-- Header -->
+      <div class="px-6 pt-6">
+        <h1 class="text-2xl font-bold tracking-tight text-gray-900">
+          Daftar Akun
+        </h1>
+        <p class="mt-1 text-sm text-gray-600">
+          Buat akun barumu untuk melanjutkan.
+        </p>
+      </div>
+
+      <!-- System messages -->
+      {% if messages %}
+      <div class="px-6 mt-4 space-y-2">
+        {% for message in messages %}
+          <div class="text-sm rounded-xl border p-3
+            {% if 'error' in message.tags %} border-red-300 bg-red-50 text-red-700
+            {% elif 'warning' in message.tags %} border-amber-300 bg-amber-50 text-amber-800
+            {% else %} border-emerald-300 bg-emerald-50 text-emerald-700 {% endif %}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <!-- Non-field errors -->
+      {% if form.non_field_errors %}
+      <div class="px-6 mt-4">
+        {% for error in form.non_field_errors %}
+          <p class="text-sm text-red-600">{{ error }}</p>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <!-- Form -->
+      <form method="POST" class="px-6 pb-6 pt-4 space-y-4" novalidate>
+        {% csrf_token %}
+
+        {% for field in form %}
+          <div>
+            <label class="block text-sm font-medium text-gray-700">
+              {{ field.label }}
+              {% if field.field.required %}<span class="text-red-500">*</span>{% endif %}
+            </label>
+
+            <!-- input wrapper so we can inject show/hide for password -->
+            <div class="mt-1 relative">
+              {{ field }}
+              <!-- field-level errors -->
+              {% if field.help_text %}
+                <p class="mt-1 text-xs text-gray-500">{{ field.help_text|safe }}</p>
+              {% endif %}
+              {% for error in field.errors %}
+                <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+              {% endfor %}
+            </div>
+          </div>
+        {% endfor %}
+
+        <button type="submit"
+                class="w-full inline-flex items-center justify-center rounded-xl px-4 py-2.5
+                       bg-violet-600 text-white font-semibold hover:bg-violet-700
+                       focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2">
+          Daftar
+        </button>
+
+        <p class="text-center text-sm text-gray-600 mt-3">
+          Sudah punya akun?
+          <!-- Change 'login' to your namespaced route if needed, e.g. 'main:login' -->
+          <a href="{% url 'main:login' %}" class="font-medium text-violet-700 hover:underline">Masuk</a>
+        </p>
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- Tiny helper: add Tailwind classes to Django-generated inputs and show/hide password -->
+<script>
+  (function () {
+    const form = document.currentScript.closest('section').querySelector('form');
+    if (!form) return;
+
+    // Style all inputs/selects/textarea without needing widget-tweaks
+    form.querySelectorAll('input, select, textarea').forEach(function (el) {
+      // Don't double-apply
+      if (el.dataset.styled) return;
+
+      el.classList.add(
+        'w-full','px-3','py-2.5','rounded-xl','border','border-gray-300',
+        'bg-white','text-gray-900','placeholder-gray-400',
+        'focus:outline-none','focus:ring-2','focus:ring-violet-500','focus:border-violet-500'
+      );
+
+      // Select & textarea tweaks
+      if (el.tagName === 'SELECT') {
+        el.classList.add('pr-10');
+      }
+      if (el.tagName === 'TEXTAREA') {
+        el.classList.add('min-h-[120px]');
+      }
+
+      el.dataset.styled = '1';
+    });
+
+    // Add show/hide for password fields
+    form.querySelectorAll('input[type="password"]').forEach(function (input) {
+      const wrapper = input.parentElement; // the .relative div above
+      if (!wrapper) return;
+
+      wrapper.classList.add('relative');
+
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'absolute inset-y-0 right-0 px-3 text-sm text-gray-600 hover:text-gray-900 focus:outline-none';
+      btn.textContent = 'Show';
+
+      btn.addEventListener('click', function () {
+        const isShown = input.type === 'text';
+        input.type = isShown ? 'password' : 'text';
+        btn.textContent = isShown ? 'Show' : 'Hide';
+      });
+
+      wrapper.appendChild(btn);
+    });
+  })();
+</script>
+
+<script>
+(function(){
+  const form = document.querySelector('form');
+  if (!form) return;
+
+  const submitBtn = form.querySelector('button[type="submit"]') || form.querySelector('button');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const fd = new FormData(form);
+    const payload = Object.fromEntries(fd.entries());
+
+    // simple loading state
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.dataset._label = submitBtn.innerHTML;
+      submitBtn.innerHTML = 'Creating account…';
+    }
+
+    try {
+      const res = await fetch('{% url "main:api_register" %}', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: Object.assign({'Content-Type':'application/json'}, (typeof withCsrf === 'function' ? withCsrf() : {})),
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json().catch(() => null);
+
+      if (data && data.ok) {
+        // <-- key bit: set flash toast for the next page load
+        sessionStorage.setItem('flash_toast_msg', 'Account created — welcome!');
+        sessionStorage.setItem('flash_toast_type', 'success');
+
+        // api_register logs the user in; go to main
+        window.location.href = "{% url 'main:show_main' %}";
+        return;
+      }
+
+      if (data && data.errors) {
+        // show a friendly toast and keep them on the page
+        toast('Registration failed. Please check the form.', 'error');
+        console.warn('Register errors:', data.errors);
+        return;
+      }
+
+      // fallback to normal POST if something odd happens
+      form.submit();
+
+    } catch (err) {
+      toast('Network error — please try again.', 'error');
+      console.error(err);
+    } finally {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = submitBtn.dataset._label || 'Daftar';
+      }
+    }
+  });
+})();
+</script>
+
+
+
+{% endblock content %}

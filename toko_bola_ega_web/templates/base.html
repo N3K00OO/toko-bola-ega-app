@@ -1,0 +1,82 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}Toko Bola Ega{% endblock %}</title>
+
+  <!-- Inter font -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+
+  <!-- Tailwind config must come BEFORE the CDN script -->
+  <script>
+    window.tailwind = window.tailwind || {};
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            accent: {
+              50:'#f5f3ff',100:'#ede9fe',200:'#ddd6fe',300:'#c4b5fd',
+              400:'#a78bfa',500:'#8b5cf6',600:'#7c3aed',700:'#6d28d9',
+              800:'#5b21b6',900:'#4c1d95'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio,line-clamp"></script>
+
+  <link rel="stylesheet" href="{% static 'css/global.css' %}">
+</head>
+<body class="bg-gray-50 text-gray-900 min-h-screen">
+  {% include 'navbar.html' %}
+
+  <div class="pt-16">
+    {% block content %}{% endblock %}
+  </div>
+
+  <!-- Toast stack (global) -->
+  <div id="toast-stack" class="fixed top-16 right-4 z-[60] space-y-3 pointer-events-none"></div>
+
+  <script src="{% static 'js/toast.js' %}"></script>
+  <script>
+    // ---------- CSRF helper ----------
+    (function(){
+      function getCookie(name){
+        const v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+        return v ? v.pop() : '';
+      }
+      window.csrfToken = getCookie('csrftoken');
+      window.withCsrf  = (headers={}) => Object.assign({"X-CSRFToken": window.csrfToken}, headers);
+    })();
+
+    // ---------- AJAX logout handler ----------
+    // Any element with [data-ajax-logout] will use this.
+    document.addEventListener('click', async (e) => {
+      const el = e.target.closest('[data-ajax-logout]');
+      if (!el) return;
+      e.preventDefault();
+      try {
+        const res = await fetch("{% url 'main:api_logout' %}", {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: (typeof withCsrf === 'function') ? withCsrf() : {}
+        });
+        const data = await res.json().catch(() => ({}));
+        if (data.ok) {
+          // show toast on the login page after redirect
+          sessionStorage.setItem('flash_toast_msg', 'Logout successful');
+          sessionStorage.setItem('flash_toast_type', 'success');
+          window.location.href = "{% url 'main:login' %}";
+        } else {
+          toast('Logout failed', 'error');
+        }
+      } catch {
+        toast('Network error on logout', 'error');
+      }
+    });
+  </script>
+</body>
+</html>

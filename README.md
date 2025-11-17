@@ -1,4 +1,4 @@
- Nama: Gregorius Ega Aditama Sudjali
+﻿ Nama: Gregorius Ega Aditama Sudjali
 # NPM: 2406434153
 # Toko Bola EGA
 
@@ -44,7 +44,7 @@
 6. **Hot reload vs hot restart**  
    Hot reload menyuntikkan perubahan kode ke VM tanpa menghapus state `StatefulWidget` yang ada, sehingga cocok untuk iterasi UI cepat. Hot restart merestart aplikasi dari awal, menghapus seluruh state in-memory. Pilih hot reload untuk perubahan tampilan dan hot restart ketika membutuhkan state fresh atau setelah mengubah kode yang tidak didukung hot reload (mis. init state).
 
-## Tugas 8 – Flutter Navigation, Layouts, Forms, and Input Elements
+## Tugas 8 â€“ Flutter Navigation, Layouts, Forms, and Input Elements
 
 ### Jawaban Pertanyaan
 1. **Navigator.push() vs Navigator.pushReplacement()**  
@@ -57,4 +57,35 @@
    `Padding` memberi ruang napas pada setiap input sehingga form lebih mudah dibaca. `SingleChildScrollView` memastikan form tetap dapat di-scroll pada layar kecil sehingga tidak terjadi overflow saat keyboard muncul. Keduanya saya kombinasikan dengan `Column` di halaman Tambah Produk sehingga seluruh elemen (teks pengantar, input, dropdown, switch, dan tombol) tersusun rapi. Ketika nanti daftar produk ingin ditampilkan dinamis, `ListView` dapat digunakan agar item menyesuaikan tinggi konten tanpa perlu menghitung manual.
 
 4. **Menyesuaikan warna tema**  
-   Saya menentukan `ColorScheme.fromSeed` dengan warna hijau utama (#0B8457) serta mengatur `appBarTheme`, `scaffoldBackgroundColor`, dan `inputDecorationTheme`. Dengan cara ini, seluruh komponen—mulai dari tombol aksi, border input, hingga Drawer—memakai kombinasi warna yang sama sehingga identitas Football Shop terasa konsisten di setiap halaman.
+   Saya menentukan `ColorScheme.fromSeed` dengan warna hijau utama (#0B8457) serta mengatur `appBarTheme`, `scaffoldBackgroundColor`, dan `inputDecorationTheme`. Dengan cara ini, seluruh komponenâ€”mulai dari tombol aksi, border input, hingga Drawerâ€”memakai kombinasi warna yang sama sehingga identitas Football Shop terasa konsisten di setiap halaman.
+## Tugas 9 – Integrasi Django x Flutter
+
+1. **Mengapa perlu model Dart untuk JSON?**  
+   Model Dart menjaga validasi tipe, null-safety, serta dokumentasi struktur data sehingga parsing JSON tidak lagi berupa `Map<String, dynamic>` liar yang rawan salah kunci atau tipe. Ketika model berubah, compiler memberi tahu bagian mana yang perlu diperbarui sehingga maintainability meningkat.
+
+2. **Peran package `http` vs `CookieRequest`**  
+   Package `http` saya pakai untuk request stateless seperti registrasi karena cukup mengirim JSON tanpa perlu melampirkan cookie sesi. `CookieRequest` menyederhanakan request yang membutuhkan sesi Django (login, logout, serta seluruh endpoint terproteksi) dengan cara menyimpan `Set-Cookie` dan otomatis mengirimkan kembali pada request berikutnya.
+
+3. **Mengapa `CookieRequest` dibagikan?**  
+   Satu instance yang disediakan lewat `Provider` memastikan seluruh widget mengakses sesi yang sama, tidak terjadi double login, serta memudahkan logout global. Jika setiap widget membuat instance sendiri, cookie yang tersimpan akan berbeda-beda dan autentikasi Django gagal.
+
+4. **Konfigurasi konektivitas Flutter <-> Django**  
+   Saya menambahkan `10.0.2.2` ke `ALLOWED_HOSTS` dan `CSRF_TRUSTED_ORIGINS` agar emulator Android bisa memanggil server lokal. Paket `django-cors-headers` diaktifkan supaya request lintas-origin diterima dan cookie bisa dibaca. Seterusnya `SESSION_COOKIE_SAMESITE`/`CSRF_COOKIE_SAMESITE` diset supaya cookie boleh dikirim dari Flutter, dan manifest Android diberi izin `INTERNET`. Jika salah satu langkah ini lupa, request akan diblokir (CORS/host), cookie tak terkirim (SameSite), atau aplikasi Android gagal membuka jaringan sama sekali (permission).
+
+5. **Alur data dari input sampai tampil di Flutter**  
+   Contoh tambah produk: pengguna mengisi form Flutter -> `ProductService` mengubah ke JSON dan memanggil `POST /api/products/` memakai `CookieRequest` -> Django memvalidasi melalui `ProductAPIForm`, menyimpan ke database, lalu merespons JSON -> Flutter mem-parse JSON ke model `Product` dan menampilkan dialog ringkasan beserta daftar terbaru di halaman katalog.
+
+6. **Mekanisme autentikasi (login/register/logout)**  
+   Registrasi memakai `http` ke `/api/auth/register/` untuk membuat user, lalu otomatis memanggil `CookieRequest.login` supaya sesi Django aktif. Login hanya memakai `CookieRequest.login`, menyimpan cookie session + `last_login`, dan `SessionState` diperbarui sehingga seluruh UI tahu pengguna aktif. Logout memanggil `CookieRequest.logout`, cookie dihapus di Django, provider `SessionState` dikosongkan, dan seluruh halaman diarahkan ke layar login.
+
+7. **Langkah implementasi checklist**  
+   (a) Mengeraskan backend Django: menambah `corsheaders`, `ALLOWED_HOSTS`, endpoint auth JSON, dan payload owner agar Flutter punya data lengkap.  
+   (b) Menambah dependency Flutter (`pbp_django_auth`, `provider`, `http`, `intl`) plus konfigurasi manifest Internet.  
+   (c) Membuat lapisan model (`Product`, `SessionUser`), state (`SessionState`), dan service (`AuthService`, `ProductService`) sehingga UI tidak ketergantungan langsung pada request mentah.  
+   (d) Mendesain ulang alur login/register dengan form validasi, mencatat sesi lewat `Provider`, dan menambah rute baru (login, register, home, list, detail, add).  
+   (e) Membangun halaman daftar item + detail memakai data dari endpoint JSON Django dengan filter `mine=1`, `RefreshIndicator`, dan kartu modern.  
+   (f) Mengintegrasikan form tambah produk supaya menembakkan data ke endpoint Django, menampilkan dialog sukses, serta menambahkan tombol logout di seluruh halaman.  
+   (g) Mengisi README dengan jawaban teknis dan dokumentasi perubahan agar mudah direview.
+
+
+

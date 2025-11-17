@@ -1,0 +1,546 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Product Catalog{% endblock %}
+{% block content %}
+
+{% url 'main:create_product' as create_url %}
+{% url 'main:api_products' as api_products_url %}
+
+<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8 pb-12">
+  <button id="asc">Sort Ascending</button>
+  <button id="desc">Sort Descending</button>
+  <div id="result"></div>
+  <!-- student info + filters -->
+  <div class="grid md:grid-cols-3 gap-6">
+    <div class="md:col-span-2">
+      <!-- Filters -->
+      <div class="bg-white border border-gray-200 rounded-2xl p-4 flex items-center gap-2 shadow-soft">
+        <span class="text-sm text-gray-500 mr-2">Filter:</span>
+
+        <a href="?filter=all"
+           aria-pressed="{{ is_all_active|yesno:'true,false' }}"
+           class="px-3 py-1.5 rounded-full text-sm font-medium border transition
+                  focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400
+                  {% if is_all_active %}
+                    bg-violet-600 text-white border-violet-600 shadow-[0_0_0_3px] shadow-violet-100
+                  {% else %}
+                    text-violet-700 border-violet-200 hover:border-violet-400 hover:bg-violet-50
+                  {% endif %}">
+          All product
+        </a>
+
+        <button id="btn-refresh"
+        class="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 12a9 9 0 1 1-6.219-8.56"/><path d="M21 3v6h-6"/></svg>
+        Refresh
+        </button>
+
+        <a href="?filter=my"
+           aria-pressed="{{ is_my_active|yesno:'true,false' }}"
+           class="px-3 py-1.5 rounded-full text-sm font-medium border transition
+                  focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400
+                  {% if is_my_active %}
+                    bg-violet-600 text-white border-violet-600 shadow-[0_0_0_3px] shadow-violet-100
+                  {% else %}
+                    text-violet-700 border-violet-200 hover:border-violet-400 hover:bg-violet-50
+                  {% endif %}">
+          My Product
+        </a>
+
+        <span class="ml-auto text-xs text-gray-500">Last login: {{ last_login }}</span>
+      </div>
+    </div>
+
+    <!-- Student card -->
+    <div class="bg-white border border-gray-200 rounded-2xl p-4 shadow-soft">
+      {% include 'main/student_info.html' %}
+    </div>
+  </div>
+
+  <!-- list / grid -->
+  {% if not products %}
+    <div class="bg-white border border-gray-200 rounded-2xl p-12 text-center mt-6 shadow-soft" data-ssr-empty>
+      <img src="{% static 'image/no-products.png' %}" alt="" class="w-24 h-24 mx-auto mb-3 opacity-80">
+      <p class="text-gray-600">No products yet. Be the first to add one!</p>
+    </div>
+  {% else %}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6" data-ssr-grid>
+      {% for p in products %}
+        <article class="group relative bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-soft hover:shadow-xl transition">
+          {% if p.is_featured %}
+            <div class="absolute top-3 left-3 z-10 px-2 py-0.5 rounded-full text-xs font-semibold bg-violet-100 text-violet-800 border border-violet-200">
+              Featured
+            </div>
+          {% endif %}
+
+          {% if p.thumbnails %}
+            <div class="aspect-[16/9] bg-gray-100">
+              <img src="{{ p.thumbnails }}" alt="{{ p.name }}" class="w-full h-full object-cover group-hover:scale-[1.02] transition">
+            </div>
+          {% endif %}
+
+          <div class="p-5">
+            <h2 class="text-lg font-semibold text-gray-900">
+              <a href="{% url 'main:show_product' p.id %}" class="hover:text-violet-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 rounded">
+                {{ p.name }}
+              </a>
+            </h2>
+            <p class="text-sm text-gray-600 mt-1">
+              {{ p.category }} • <i>{{ p.created_at|date:"d M Y H:i" }}</i> • Views: {{ p.views }}
+            </p>
+
+            <p class="text-gray-700 mt-3 line-clamp-2">{{ p.description }}</p>
+            <p class="text-sm text-gray-600 mt-2">
+              Brand: {{ p.brand }} • Price: <span class="font-semibold text-violet-700">Rp{{ p.price }}</span>
+            </p>
+
+            <div class="mt-4 flex items-center justify-between">
+              <a href="{% url 'main:show_product' p.id %}"
+                 class="inline-flex items-center px-3 py-2 rounded-lg bg-violet-600 text-white hover:bg-violet-700
+                        focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400">
+                Detail
+              </a>
+
+              {% if user.is_authenticated and p.user_id == user.id %}
+                <div class="flex gap-3 text-sm">
+                  <a href="{% url 'main:edit_product' p.id %}"
+                     class="text-gray-700 hover:text-violet-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 rounded">
+                    Edit
+                  </a>
+                  <form method="POST" action="{% url 'main:delete_product' p.id %}">
+                    {% csrf_token %}
+                    <button class="text-red-600 hover:text-red-700">Delete</button>
+                  </form>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  {% endif %}
+</main>
+
+<!-- ---------- CREATE MODAL (new) ---------- -->
+{% if user.is_authenticated %}
+<div id="createModal" class="fixed inset-0 z-50 hidden">
+  <div class="absolute inset-0 bg-gray-900/50"></div>
+  <div class="absolute inset-0 grid place-items-center p-4">
+    <div id="createCard" class="w-full max-w-lg bg-white rounded-2xl border border-gray-200 shadow opacity-0 translate-y-2 transition">
+      <div class="p-5 border-b flex items-center justify-between">
+        <h3 class="text-lg font-semibold">Add product</h3>
+        <button type="button" class="p-1.5 rounded hover:bg-gray-100" data-close-create>&times;</button>
+      </div>
+      <form id="createForm" class="p-5 space-y-4">
+        <div class="grid sm:grid-cols-2 gap-4">
+          <label class="block">
+            <span class="text-sm text-gray-700">Name</span>
+            <input name="name" required class="mt-1 w-full px-3 py-2 border rounded-lg" />
+          </label>
+          <label class="block">
+            <span class="text-sm text-gray-700">Brand</span>
+            <input name="brand" class="mt-1 w-full px-3 py-2 border rounded-lg" />
+          </label>
+        </div>
+
+        <div class="grid sm:grid-cols-2 gap-4">
+          <label class="block">
+            <span class="text-sm text-gray-700">Price</span>
+            <input name="price" type="number" min="0" required class="mt-1 w-full px-3 py-2 border rounded-lg" />
+          </label>
+          <label class="block">
+            <span class="text-sm text-gray-700">Featured</span>
+            <select name="is_featured" class="mt-1 w-full px-3 py-2 border rounded-lg">
+              <option value="false">No</option>
+              <option value="true">Yes</option>
+            </select>
+          </label>
+        </div>
+
+        <label class="block">
+          <span class="text-sm text-gray-700">Category</span>
+          <select name="category" required class="mt-1 w-full px-3 py-2 border rounded-lg">
+            {% for code,label in categories %}
+              <option value="{{ code }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </label>
+
+        <label class="block">
+          <span class="text-sm text-gray-700">Thumbnail URL</span>
+          <input name="thumbnails" class="mt-1 w-full px-3 py-2 border rounded-lg" />
+        </label>
+
+        <label class="block">
+          <span class="text-sm text-gray-700">Description</span>
+          <textarea name="description" class="mt-1 w-full px-3 py-2 border rounded-lg min-h-[96px]"></textarea>
+        </label>
+
+        <div class="pt-2 flex gap-2 justify-end">
+          <button type="button" class="px-4 py-2 rounded border" data-close-create>Cancel</button>
+          <button class="px-4 py-2 rounded bg-violet-600 text-white hover:bg-violet-700">Create</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- ---------- EDIT MODAL ---------- -->
+<div id="editModal" class="fixed inset-0 z-50 hidden">
+  <div class="absolute inset-0 bg-gray-900/50"></div>
+  <div class="absolute inset-0 grid place-items-center p-4">
+    <div id="editCard" class="w-full max-w-lg bg-white rounded-2xl border border-gray-200 shadow opacity-0 translate-y-2 transition">
+      <div class="p-5 border-b flex items-center justify-between">
+        <h3 class="text-lg font-semibold">Edit product</h3>
+        <button type="button" class="p-1.5 rounded hover:bg-gray-100" data-close-edit>&times;</button>
+      </div>
+      <form id="editForm" class="p-5 space-y-4">
+        <div class="grid sm:grid-cols-2 gap-4">
+          <label class="block">
+            <span class="text-sm text-gray-700">Name</span>
+            <input name="name" class="mt-1 w-full px-3 py-2 border rounded-lg" />
+          </label>
+          <label class="block">
+            <span class="text-sm text-gray-700">Brand</span>
+            <input name="brand" class="mt-1 w-full px-3 py-2 border rounded-lg" />
+          </label>
+        </div>
+        <div class="grid sm:grid-cols-2 gap-4">
+          <label class="block">
+            <span class="text-sm text-gray-700">Price</span>
+            <input name="price" type="number" min="0" class="mt-1 w-full px-3 py-2 border rounded-lg" />
+          </label>
+          <label class="block">
+            <span class="text-sm text-gray-700">Featured</span>
+            <select name="is_featured" class="mt-1 w-full px-3 py-2 border rounded-lg">
+              <option value="false">No</option>
+              <option value="true">Yes</option>
+            </select>
+          </label>
+        </div>
+        <label class="block">
+          <span class="text-sm text-gray-700">Thumbnail URL</span>
+          <input name="thumbnails" class="mt-1 w-full px-3 py-2 border rounded-lg" />
+        </label>
+        <label class="block">
+          <span class="text-sm text-gray-700">Description</span>
+          <textarea name="description" class="mt-1 w-full px-3 py-2 border rounded-lg min-h-[96px]"></textarea>
+        </label>
+
+        <div class="pt-2 flex gap-2 justify-end">
+          <button type="button" class="px-4 py-2 rounded border" data-close-edit>Cancel</button>
+          <button class="px-4 py-2 rounded bg-violet-600 text-white hover:bg-violet-700">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ---------- CONFIRM DELETE MODAL ---------- -->
+<div id="confirmModal" class="fixed inset-0 z-50 hidden">
+  <div class="absolute inset-0 bg-gray-900/50"></div>
+  <div class="absolute inset-0 grid place-items-center p-4">
+    <div id="confirmCard" class="w-full max-w-md bg-white rounded-2xl border border-gray-200 shadow opacity-0 translate-y-2 transition">
+      <div class="p-5 border-b">
+        <h3 class="text-lg font-semibold">Delete product</h3>
+      </div>
+      <div class="p-5">
+        <p class="text-gray-700">Are you sure you want to delete <b id="confirmName"></b>?</p>
+      </div>
+      <div class="p-5 pt-0 flex gap-2 justify-end">
+        <button type="button" class="px-4 py-2 rounded border" data-close-confirm>Cancel</button>
+        <button type="button" class="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700" id="confirmDeleteBtn">Yes, delete</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  // ---------- Helpers ----------
+  function getCookie(name) {
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp('(?:^|; )' + escaped + '=([^;]*)');
+  const m = document.cookie.match(re);
+  return m ? decodeURIComponent(m[1]) : null;
+}
+
+  function withCsrf() {
+    const token = getCookie('csrftoken');
+    return token ? { 'X-CSRFToken': token } : {};
+  }
+  function money(n) {
+    try { return new Intl.NumberFormat('id-ID').format(Number(n)); }
+    catch { return n; }
+  }
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  // Tiny toast
+  const toastBox = document.createElement('div');
+  toastBox.className = 'fixed bottom-4 left-1/2 -translate-x-1/2 z-[60] space-y-2';
+  document.body.appendChild(toastBox);
+  function toast(msg, type='info') {
+    const el = document.createElement('div');
+    el.className = 'px-3 py-2 rounded-lg shadow text-white ' + (type==='error' ? 'bg-red-600' : type==='success' ? 'bg-green-600' : 'bg-gray-900');
+    el.textContent = msg;
+    toastBox.appendChild(el);
+    setTimeout(() => { el.remove(); }, 2200);
+  }
+  const asc = document.querySelector("#asc");
+  const desc = document.querySelector("#desc");
+
+  asc.addEventListener("click", async (e) => {
+    let response = await fetch("/api/sort/asc"); 
+    response = await response.json();
+    let template = ""
+    for(resp of response){
+      obj = resp.fields
+      template += `<div>`
+      for(const [key,f] of Object.entries(obj))
+        template += `<p>${key}:${f}</p>`;
+      template += `<img src="${obj.thumbnails}" />`
+      template += `</div><br/>`
+    }
+    document.querySelector("#result").innerHTML = template
+  })
+   desc.addEventListener("click", async (e) => {
+    let response = await fetch("/api/sort/desc"); 
+    response = await response.json();
+    let template = ""
+    for(resp of response){
+      obj = resp.fields
+      template += `<div>`
+      for(const [key, f] of Object.entries(obj))
+        template += `<p>${key}:${f}</p>`;
+      template += `<img src="${obj.thumbnails}" />`
+      template += `</div><br/>`
+    }
+    document.querySelector("#result").innerHTML = template
+  })
+  // ---------- SSR grid elements ----------
+  const gridSSR  = document.querySelector('[data-ssr-grid]');
+  const ssrEmpty = document.querySelector('[data-ssr-empty]');
+  const parent   = gridSSR?.parentElement || ssrEmpty?.parentElement || document.querySelector('main');
+
+  // ---------- AJAX grid ----------
+  const gridAJAX = document.createElement('div');
+  gridAJAX.className = 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6';
+  if (parent) parent.insertBefore(gridAJAX, gridSSR || ssrEmpty || null);
+
+  function cardHTML(p) {
+    const href = `/product/${esc(p.id)}/`;
+    return `
+    <article class="group relative bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-soft hover:shadow-xl transition">
+      ${p.is_featured ? `<div class="absolute top-3 left-3 z-10 px-2 py-0.5 rounded-full text-xs font-semibold bg-violet-100 text-violet-800 border border-violet-200">Featured</div>` : ``}
+      ${p.thumbnails ? `<div class="aspect-[16/9] bg-gray-100"><img src="${esc(p.thumbnails)}" alt="${esc(p.name)}" class="w-full h-full object-cover group-hover:scale-[1.02] transition"></div>` : ``}
+      <div class="p-5">
+        <h2 class="text-lg font-semibold text-gray-900">
+          <a href="${href}" class="hover:text-violet-700">${esc(p.name)}</a>
+        </h2>
+        <p class="text-sm text-gray-600 mt-1">${esc(p.category)} • <i>${new Date(p.created_at).toLocaleString()}</i> • Views: ${esc(p.views)}</p>
+        <p class="text-gray-700 mt-3 line-clamp-2">${esc(p.description)}</p>
+        <p class="text-sm text-gray-600 mt-2">Brand: ${esc(p.brand)} • Price: <span class="font-semibold text-violet-700">Rp${money(p.price)}</span></p>
+        <div class="mt-4 flex items-center justify-between">
+          <a href="${href}" class="inline-flex items-center px-3 py-2 rounded-lg bg-violet-600 text-white hover:bg-violet-700">Detail</a>
+          ${p.is_owner ? `
+          <div class="flex gap-3 text-sm">
+            <button data-edit="${esc(p.id)}" class="text-gray-700 hover:text-violet-700">Edit</button>
+            <button data-del="${esc(p.id)}" data-name="${esc(p.name)}" class="text-red-600 hover:text-red-700">Delete</button>
+          </div>` : ``}
+        </div>
+      </div>
+    </article>`;
+  }
+
+  function getParam(k){ return new URL(location.href).searchParams.get(k) || ''; }
+  function setSearchParam(key, value){
+    const url = new URL(location.href);
+    if (!value) url.searchParams.delete(key);
+    else url.searchParams.set(key, value);
+    history.replaceState({}, '', url);
+  }
+
+  async function loadProducts() {
+    gridAJAX.innerHTML = `<div class="col-span-full text-center text-gray-600">Loading…</div>`;
+    const mine = (getParam('filter') === 'my') ? '&mine=1' : '';
+    const q    = getParam('q') ? `&q=${encodeURIComponent(getParam('q'))}` : '';
+    try {
+      const res  = await fetch(`/api/products/?${mine}${q}`, { headers: { "Accept":"application/json" }, credentials: 'same-origin' });
+      const data = await res.json();
+      if (!data.ok) throw new Error('Bad response');
+      gridAJAX.innerHTML = data.items.length
+        ? data.items.map(cardHTML).join('')
+        : `<div class="col-span-full text-center text-gray-600">No products yet.</div>`;
+      if (gridSSR) gridSSR.style.display = 'none';
+      if (ssrEmpty) ssrEmpty.style.display = 'none';
+    } catch (e) {
+      gridAJAX.innerHTML = `<div class="col-span-full text-center text-red-600">Failed to load.</div>`;
+    }
+  }
+
+  document.getElementById('btn-refresh')?.addEventListener('click', () => {
+    window.reloadProducts?.();
+    toast?.('Refreshed!', 'success');
+  });
+
+  // expose for other scripts/snippets (like your attached one)
+  window.reloadProducts = loadProducts;
+
+  // Live search via navbar (if present)
+  const searchInput = document.getElementById('global-search');
+  if (searchInput) {
+    searchInput.value = getParam('q') || '';
+    let t;
+    searchInput.addEventListener('input', () => {
+      clearTimeout(t);
+      t = setTimeout(() => {
+        setSearchParam('q', searchInput.value.trim());
+        loadProducts();
+      }, 250);
+    });
+    window.addEventListener('keydown', e => {
+      const tag = (document.activeElement?.tagName || '').toUpperCase();
+      if (e.key === '/' && tag !== 'INPUT' && tag !== 'TEXTAREA') { searchInput.focus(); e.preventDefault(); }
+    });
+  }
+  window.addEventListener('popstate', loadProducts);
+
+  // ---------- Create modal wiring ----------
+  const createModal = document.getElementById('createModal');
+  const createCard  = document.getElementById('createCard');
+  const createForm  = document.getElementById('createForm');
+
+  function showCreate(){ if(!createModal) return; createModal.classList.remove('hidden'); requestAnimationFrame(()=>{ createCard.classList.remove('opacity-0','translate-y-2'); }); }
+  function hideCreate(){ if(!createModal) return; createCard.classList.add('opacity-0','translate-y-2'); setTimeout(()=> createModal.classList.add('hidden'), 150); }
+  function closeCreate(){ hideCreate(); } // alias for your snippet
+
+  createModal?.addEventListener('click', e => { if (e.target === createModal || e.target.hasAttribute('data-close-create')) hideCreate(); });
+
+  // Intercept navbar "Add Product" to open modal (if present)
+  const addLink = document.querySelector(`a[href="{{ create_url }}"]`);
+  addLink?.addEventListener('click', (e) => {
+    if (!createModal) return; // no modal? allow normal navigation
+    e.preventDefault();
+    showCreate();
+  });
+
+  // ---------- Edit modal wiring ----------
+  const editModal  = document.getElementById('editModal');
+  const editCard   = document.getElementById('editCard');
+  const editForm   = document.getElementById('editForm');
+  let editingId = null;
+
+  function showEdit(){ editModal.classList.remove('hidden'); requestAnimationFrame(()=>{ editCard.classList.remove('opacity-0','translate-y-2'); }); }
+  function hideEdit(){ editCard.classList.add('opacity-0','translate-y-2'); setTimeout(()=> editModal.classList.add('hidden'), 150); }
+  function closeEdit(){ hideEdit(); } // alias for your snippet
+
+  editModal.addEventListener('click', e => { if (e.target === editModal || e.target.hasAttribute('data-close-edit')) hideEdit(); });
+
+  async function openEdit(id){
+    try {
+      const res  = await fetch(`/api/products/${id}/`, { headers: { "Accept":"application/json" }, credentials: 'same-origin' });
+      const data = await res.json();
+      if (!data.ok) throw 0;
+      const p = data.item; editingId = id;
+      editForm.name.value        = p.name ?? '';
+      editForm.brand.value       = p.brand ?? '';
+      editForm.price.value       = p.price ?? 0;
+      editForm.thumbnails.value  = p.thumbnails ?? '';
+      editForm.description.value = p.description ?? '';
+      editForm.is_featured.value = p.is_featured ? 'true' : 'false';
+      showEdit();
+    } catch {
+      toast('Failed to load item', 'error');
+    }
+  }
+
+  // ---------- Confirm delete modal wiring ----------
+  const confirmModal   = document.getElementById('confirmModal');
+  const confirmCard    = document.getElementById('confirmCard');
+  const confirmName    = document.getElementById('confirmName');
+  const confirmDelete  = document.getElementById('confirmDeleteBtn');
+  let deletingId = null;
+
+  function showConfirm(){ confirmModal.classList.remove('hidden'); requestAnimationFrame(()=>{ confirmCard.classList.remove('opacity-0','translate-y-2'); }); }
+  function hideConfirm(){ confirmCard.classList.add('opacity-0','translate-y-2'); setTimeout(()=> confirmModal.classList.add('hidden'), 150); }
+  function closeConfirm(){ hideConfirm(); } // alias for your snippet
+
+  confirmModal.addEventListener('click', e => { if (e.target === confirmModal || e.target.hasAttribute('data-close-confirm')) hideConfirm(); });
+
+  // Card delegation (edit/delete buttons)
+  gridAJAX.addEventListener('click', (e) => {
+    const idEdit = e.target?.dataset?.edit;
+    if (idEdit) return openEdit(idEdit);
+    const idDel  = e.target?.dataset?.del;
+    if (idDel) {
+      deletingId = idDel;
+      confirmName.textContent = e.target.dataset.name || 'this item';
+      showConfirm();
+    }
+  });
+
+  // ---------- YOUR ATTACHED HANDLERS (Create/Edit/Delete) ----------
+  /* --- CREATE --- */
+  if (createForm) {
+    createForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(createForm);
+      const payload = Object.fromEntries(fd.entries());
+      payload.is_featured = payload.is_featured === 'true';
+      try {
+        const res = await fetch("{{ api_products_url }}", {
+          method:'POST',
+          credentials: 'same-origin',
+          headers: Object.assign({'Content-Type':'application/json'}, withCsrf()),
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.ok) { closeCreate(); toast('Product created', 'success'); window.reloadProducts?.(); }
+        else { toast('Create failed', 'error'); console.warn(data.errors); }
+      } catch (_) { toast('Network error', 'error'); }
+    });
+  }
+
+  /* --- EDIT --- */
+  editForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!editingId) return;
+    const fd = new FormData(editForm);
+    const payload = Object.fromEntries(fd.entries());
+    if (payload.price) payload.price = Number(payload.price);
+    payload.is_featured = payload.is_featured === 'true';
+    try {
+      const res = await fetch(`/api/products/${editingId}/`, {
+        method:'PATCH',
+        credentials: 'same-origin',
+        headers: Object.assign({'Content-Type':'application/json'}, withCsrf()),
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (data.ok) { closeEdit(); toast('Product updated', 'success'); window.reloadProducts?.(); }
+      else { toast('Update failed', 'error'); console.warn(data.errors); }
+    } catch (_) { toast('Network error', 'error'); }
+  });
+
+  /* --- DELETE --- */
+  confirmDelete.addEventListener('click', async () => {
+    if (!deletingId) return;
+    try {
+    const res  = await fetch(`/api/products/${deletingId}/`, {
+    method:'DELETE',
+    credentials: 'same-origin',
+    headers: withCsrf()
+  });
+      const data = await res.json();
+      if (data.ok) { closeConfirm(); toast('Product deleted', 'success'); window.reloadProducts?.(); }
+      else { toast('Delete failed', 'error'); }
+    } catch (_) { toast('Network error', 'error'); }
+  });
+
+  // initial render
+  loadProducts();
+})();
+</script>
+
+{% endblock %}

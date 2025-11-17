@@ -1,0 +1,188 @@
+<nav data-navbar role="navigation"
+     class="fixed top-0 inset-x-0 z-50 bg-white/90 backdrop-blur border-b border-gray-200 text-gray-900 transition-colors duration-300">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 grid grid-cols-[1fr_auto_1fr] items-center">
+
+    <!-- Brand -->
+    <a href="{% url 'main:show_main' %}" class="font-extrabold text-lg tracking-tight justify-self-start">
+      Toko <span class="text-violet-700">Bola Ega</span>
+    </a>
+
+    <!-- Categories (center) -->
+    {% if categories %}
+      <div class="hidden md:flex items-center gap-1 justify-self-center">
+        {% for code,label in categories %}
+          <a href="{% url 'main:show_main' %}?filter={{ current_filter|default:'all' }}&category={{ code }}"
+             class="px-3 py-1.5 rounded-full text-sm font-medium border transition
+                    {% if current_category == code %}
+                      bg-violet-600 text-white border-violet-600
+                    {% else %}
+                      text-violet-700 border-violet-200 hover:border-violet-400 hover:bg-violet-50
+                    {% endif %}">
+            {{ label }}
+          </a>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <!-- Right-side (desktop): search + auth actions -->
+    <div class="hidden md:flex items-center gap-2 justify-self-end">
+      <div class="relative">
+        <input id="global-search" type="search" placeholder="Search products…"
+               class="w-56 px-3 py-2 rounded-lg border border-gray-300 bg-white
+                      focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500" />
+        <span class="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-500">/</span>
+      </div>
+
+      {% if user.is_authenticated %}
+        <a href="{% url 'main:create_product' %}" data-nav-cta
+           class="px-3 py-2 rounded-lg bg-violet-600 text-white hover:bg-violet-700">
+          Add Product
+        </a>
+        <!-- Use AJAX logout via data-ajax-logout so base.html shows flash toast after redirect -->
+        <a href="{% url 'main:logout' %}" data-nav-cta data-ajax-logout
+           class="px-3 py-2 rounded-lg bg-violet-600 text-white hover:bg-violet-700">
+          Logout
+        </a>
+      {% else %}
+        <a href="{% url 'main:login' %}" data-nav-btn
+           class="px-3 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">
+          Login
+        </a>
+        <a href="{% url 'main:register' %}" data-nav-cta
+           class="px-3 py-2 rounded-lg bg-violet-600 text-white hover:bg-violet-700">
+          Register
+        </a>
+      {% endif %}
+    </div>
+
+    <!-- Mobile menu button -->
+    <button id="menu-btn" type="button" class="md:hidden justify-self-end p-2 rounded border border-gray-300 text-gray-700"
+            aria-label="Menu" aria-controls="mobile-menu" aria-expanded="false">
+      <div class="w-5 h-0.5 bg-current mb-1"></div>
+      <div class="w-5 h-0.5 bg-current mb-1"></div>
+      <div class="w-5 h-0.5 bg-current"></div>
+    </button>
+  </div>
+
+  <!-- Mobile menu -->
+  <div id="mobile-menu" class="md:hidden hidden border-t border-gray-200 bg-white">
+    <div class="px-4 py-3 space-y-2">
+      {% if categories %}
+        <div class="flex flex-wrap gap-2 mb-2">
+          {% for code,label in categories %}
+            <a href="{% url 'main:show_main' %}?filter={{ current_filter|default:'all' }}&category={{ code }}"
+               class="px-3 py-1.5 rounded-full text-sm font-medium border
+                      {% if current_category == code %}
+                        bg-violet-600 text-white border-violet-600
+                      {% else %}
+                        text-violet-700 border-violet-200
+                      {% endif %}">
+              {{ label }}
+            </a>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <div>
+        <input id="global-search-mobile" type="search" placeholder="Search products…"
+               class="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white
+                      focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500" />
+      </div>
+
+      {% if user.is_authenticated %}
+        <a href="{% url 'main:create_product' %}" data-nav-cta
+           class="block px-3 py-2 rounded bg-violet-600 text-white hover:bg-violet-700">
+          Add Product
+        </a>
+        <!-- Same AJAX logout on mobile -->
+        <a href="{% url 'main:logout' %}" data-nav-cta data-ajax-logout
+           class="block px-3 py-2 rounded bg-violet-600 text-white hover:bg-violet-700">
+          Logout
+        </a>
+      {% else %}
+        <a href="{% url 'main:login' %}" data-nav-btn
+           class="block px-3 py-2 rounded border border-gray-300 text-gray-700 hover:bg-gray-50">
+          Login
+        </a>
+        <a href="{% url 'main:register' %}" data-nav-cta
+           class="block px-3 py-2 rounded bg-violet-600 text-white hover:bg-violet-700">
+          Register
+        </a>
+      {% endif %}
+    </div>
+  </div>
+
+  <script>
+    (()=> {
+      const nav     = document.querySelector('[data-navbar]');
+      const menuBtn = document.getElementById('menu-btn');
+      const menu    = document.getElementById('mobile-menu');
+      const btns    = () => document.querySelectorAll('[data-nav-btn]');
+      const ctas    = () => document.querySelectorAll('[data-nav-cta]');
+      const hasHero = !!document.querySelector('[data-hero]');
+
+      function reserveSpace(){ document.body.style.paddingTop = nav ? `${nav.offsetHeight}px` : '0px'; }
+      function setGlass(){
+        nav.classList.remove('bg-white/90','backdrop-blur','border-b','border-gray-200','text-gray-900');
+        nav.classList.add('bg-transparent','border-transparent','text-white');
+        btns().forEach(el => { el.classList.remove('border-gray-300','text-gray-700','hover:bg-gray-50');
+                               el.classList.add('border-white/40','text-white','hover:bg-white/10'); });
+        ctas().forEach(el => { el.classList.remove('bg-violet-600','text-white','hover:bg-violet-700');
+                               el.classList.add('bg-white','text-violet-700','hover:bg-white/90'); });
+        menuBtn?.classList.remove('border-gray-300','text-gray-700');
+        menuBtn?.classList.add('border-white/40','text-white');
+      }
+      function setSolid(){
+        nav.classList.remove('bg-transparent','border-transparent','text-white');
+        nav.classList.add('bg-white/90','backdrop-blur','border-b','border-gray-200','text-gray-900');
+        btns().forEach(el => { el.classList.remove('border-white/40','text-white','hover:bg-white/10');
+                               el.classList.add('border-gray-300','text-gray-700','hover:bg-gray-50'); });
+        ctas().forEach(el => { el.classList.remove('bg-white','text-violet-700','hover:bg-white/90');
+                               el.classList.add('bg-violet-600','text-white','hover:bg-violet-700'); });
+        menuBtn?.classList.remove('border-white/40','text-white');
+        menuBtn?.classList.add('border-gray-300','text-gray-700');
+      }
+      function applyState(){ if (!hasHero){ setSolid(); return; } window.scrollY <= 10 ? setGlass() : setSolid(); }
+
+      // Mobile menu toggle with ARIA
+      menuBtn?.addEventListener('click', () => {
+        const isOpen = !menu.classList.contains('hidden');
+        menu.classList.toggle('hidden');
+        menuBtn.setAttribute('aria-expanded', String(!isOpen));
+        reserveSpace();
+      });
+
+      // Keep body padding equal to fixed nav height
+      applyState(); reserveSpace();
+      window.addEventListener('scroll', applyState);
+      window.addEventListener('resize', reserveSpace);
+      if ('ResizeObserver' in window){ new ResizeObserver(reserveSpace).observe(nav); }
+
+      // Sync mobile/desktop search inputs if both exist
+      const qFromURL = new URL(location.href).searchParams.get('q') || '';
+      const desk = document.getElementById('global-search');
+      const mob  = document.getElementById('global-search-mobile');
+      if (desk) desk.value = qFromURL;
+      if (mob)  mob.value  = qFromURL;
+
+      function setSearchParam(key, value){
+        const url = new URL(location.href);
+        if (!value) url.searchParams.delete(key); else url.searchParams.set(key, value);
+        history.replaceState({}, '', url);
+        // If you use the AJAX grid loader, it will pick up URL changes.
+        window.dispatchEvent(new Event('popstate'));
+      }
+
+      function wireSearch(input){
+        if (!input) return;
+        let t;
+        input.addEventListener('input', () => {
+          clearTimeout(t);
+          t = setTimeout(() => setSearchParam('q', input.value.trim()), 250);
+        });
+      }
+      wireSearch(desk);
+      wireSearch(mob);
+    })();
+  </script>
+</nav>

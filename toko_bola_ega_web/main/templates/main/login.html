@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+{% block title %}Login{% endblock %}
+{% block content %}
+
+<section class="min-h-[calc(100vh-6rem)] flex items-center justify-center py-10 px-4">
+  <div class="w-full max-w-xl bg-white border border-gray-200 rounded-2xl shadow-xl overflow-hidden">
+    <div class="relative p-8">
+      <div class="absolute inset-0 bg-gradient-to-br from-violet-700 via-violet-500 to-fuchsia-500"></div>
+      <div class="relative">
+        <h1 class="text-3xl md:text-4xl font-extrabold text-white drop-shadow">Welcome back</h1>
+        <p class="text-white/90 mt-1">Sign in to manage your products and reviews.</p>
+      </div>
+      <div class="pointer-events-none absolute -top-10 -right-10 w-48 h-48 rounded-full bg-white/20 blur-3xl"></div>
+    </div>
+
+    <div class="px-6 sm:px-8 pb-8 pt-6">
+      {% if form.non_field_errors %}
+        <div class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-700">
+          {{ form.non_field_errors }}
+        </div>
+      {% endif %}
+
+      <form method="POST" class="space-y-5">
+        {% csrf_token %}
+        <label class="block">
+          <span class="text-sm text-gray-700">Username</span>
+          <div class="mt-1">{{ form.username }}</div>
+          {% for error in form.username.errors %}<p class="text-sm text-red-600 mt-1">{{ error }}</p>{% endfor %}
+        </label>
+        <label class="block">
+          <span class="text-sm text-gray-700">Password</span>
+          <div class="mt-1">{{ form.password }}</div>
+          {% for error in form.password.errors %}<p class="text-sm text-red-600 mt-1">{{ error }}</p>{% endfor %}
+        </label>
+        <button class="w-full inline-flex items-center justify-center px-4 py-3 rounded-lg bg-violet-600 text-white font-semibold hover:bg-violet-700 focus:outline-none focus:ring-2 focus:ring-violet-400">
+          Sign In
+        </button>
+      </form>
+
+      <div class="mt-6 flex items-center justify-between text-sm">
+        <a href="{% url 'main:show_main' %}" class="text-gray-600 hover:text-violet-700">← Back to Home</a>
+        <div class="text-gray-600">
+          New here?
+          <a href="{% url 'main:register' %}" class="text-violet-700 font-semibold hover:underline">Create account</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+(function(){
+  const form = document.querySelector('form');
+  if (!form) return;
+
+  const submitBtn = form.querySelector('button[type="submit"]') || form.querySelector('button');
+
+  async function ajaxLogin(e){
+    e.preventDefault();
+    const fd = new FormData(form);
+    const payload = Object.fromEntries(fd.entries());
+
+    if (submitBtn) { submitBtn.disabled = true; submitBtn.dataset._label = submitBtn.innerHTML; submitBtn.innerHTML = 'Signing in…'; }
+
+    try {
+      const res = await fetch("{% url 'main:api_login' %}", {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: Object.assign({'Accept':'application/json','Content-Type':'application/json'}, (window.withCsrf ? withCsrf() : {})),
+        body: JSON.stringify(payload)
+      });
+
+      let data = null; try { data = await res.json(); } catch {}
+
+      if (res.status === 403) { toast('Forbidden (CSRF). Refresh this page and try again.', 'error'); return; }
+
+      if (data && data.ok) {
+        sessionStorage.setItem('flash_toast_msg', 'Login successful, welcome back!');
+        sessionStorage.setItem('flash_toast_type', 'success');
+        window.location.href = "{% url 'main:show_main' %}";
+        return;
+      }
+      if (data && data.errors) { toast('Invalid username or password', 'error'); return; }
+
+      form.removeEventListener('submit', ajaxLogin);
+      form.submit(); // fallback SSR
+
+    } catch {
+      toast('Network error — retrying normally…', 'error');
+      form.removeEventListener('submit', ajaxLogin);
+      form.submit();
+    } finally {
+      if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = submitBtn.dataset._label || 'Sign In'; }
+    }
+  }
+
+  form.addEventListener('submit', ajaxLogin);
+})();
+</script>
+{% endblock %}

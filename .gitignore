@@ -117,3 +117,18 @@ app.*.symbols
 !**/ios/**/default.perspectivev3
 !/packages/flutter_tools/test/data/dart_dependencies_test/**/.packages
 !/dev/ci/**/Gemfile.lock
+
+# Codex / tooling artifacts
+.codex/
+.codex-cli/
+codex.log
+.codex_history
+
+# Django local-only artifacts
+toko_bola_ega_web/venv/
+toko_bola_ega_web/.env
+toko_bola_ega_web/.env.*
+toko_bola_ega_web/db.sqlite3
+toko_bola_ega_web/static/
+toko_bola_ega_web/staticfiles/
+toko_bola_ega_web/media/
